@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+
+# Tauri build artifacts
+src-tauri/target/
+
+# Local database
+*.db
+*.db-shm
+*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db

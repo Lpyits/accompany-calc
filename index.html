@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>陪玩系统</title>
+    <style>
+      /* ── 跨平台 macOS 风格滚动条 ── */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.18);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0,0,0,0.35);
+      }
+      ::-webkit-scrollbar-corner {
+        background: transparent;
+      }
+      /* Windows 上隐藏滚动条箭头按钮 */
+      ::-webkit-scrollbar-button {
+        display: none;
+      }
+      /* 统一字体渲染 */
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
