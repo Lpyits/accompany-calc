@@ -50,7 +50,34 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     loadSettings();
+    // 离开页面时立即保存未提交的修改，防止切换Tab时配置丢失
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        const vals = form.getFieldsValue();
+        if (vals && Object.keys(vals).length > 0) {
+          flushSave(vals);
+        }
+      }
+    };
   }, []);
+
+  /** 立即写入配置（不走 debounce） */
+  const flushSave = async (vals: Record<string, unknown>) => {
+    try {
+      await setSetting("platform_commission", String(vals.platform_commission));
+      await setSetting("default_unit_price", String(vals.default_unit_price));
+      await setSetting("deposit_unit_price", String(vals.deposit_unit_price));
+      await setSetting("personal_unit_price", String(vals.personal_unit_price));
+      const giftRule = JSON.stringify({ threshold: String(vals.gift_threshold), gift: String(vals.gift_hours) });
+      await setSetting("deposit_gift_rule", giftRule);
+      const tiers = JSON.parse(vals.redpacket_tiers as string);
+      for (let i = 0; i < tiers.length - 1; i++) {
+        if (tiers[i + 1].min != null) tiers[i].max = tiers[i + 1].min;
+      }
+      await setSetting("redpacket_tiers", JSON.stringify(tiers));
+    } catch { /* 静默 */ }
+  };
 
   // ── 自动保存（去抖 800ms） ──
   const autoSave = useCallback(async (vals: Record<string, unknown>) => {
@@ -68,8 +95,13 @@ const Settings: React.FC = () => {
         });
         await setSetting("deposit_gift_rule", giftRule);
 
-        // 校验 JSON
+        // 校验 JSON，并自动衔接相邻档位防止真空区
         const tiers = JSON.parse(vals.redpacket_tiers as string);
+        for (let i = 0; i < tiers.length - 1; i++) {
+          if (tiers[i + 1].min != null) {
+            tiers[i].max = tiers[i + 1].min;
+          }
+        }
         await setSetting("redpacket_tiers", JSON.stringify(tiers));
 
         message.success("配置已自动保存");

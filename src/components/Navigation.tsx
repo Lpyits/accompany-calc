@@ -47,9 +47,11 @@ const Navigation: React.FC = () => {
         items={tabs.map((t) => ({
           key: t.key,
           label: (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-              {React.cloneElement(t.icon, { style: { fontSize: 18 } })}
-              <span style={{ fontSize: 10 }}>{t.label}</span>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 27, height: 21, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {React.cloneElement(t.icon, { style: { fontSize: 19 } })}
+              </div>
+              <span style={{ fontSize: 13, lineHeight: "17px" }}>{t.label}</span>
             </div>
           ),
         }))}

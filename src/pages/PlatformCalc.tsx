@@ -73,18 +73,20 @@ const PlatformCalc: React.FC = () => {
       }
       loadFlow();
     })();
-  }, [loadFlow]);
+  }, []); // 每次进入页面重新读取配置，确保与配置中心联动
 
   const getRedpacketRate = useCallback(
-    (amount: Decimal): Decimal => {
-      for (const tier of redpacketTiers) {
+    async (amount: Decimal): Promise<Decimal> => {
+      // 每次计算前实时从 DB 读取，确保与配置中心强联动
+      const rt = await getSetting("redpacket_tiers");
+      const tiers: { min?: number; max?: number; rate: number }[] = rt ? JSON.parse(rt) : redpacketTiers;
+      for (const tier of tiers) {
         const min = tier.min != null ? new Decimal(tier.min) : new Decimal(0);
         const max = tier.max != null ? new Decimal(tier.max) : new Decimal(Infinity);
-        // 含上限不含下限：第一档无 min → gte(0)；后续有 min → gt(min)
         const lowerOk = tier.min != null ? amount.gt(min) : amount.gte(min);
         if (lowerOk && amount.lte(max)) return new Decimal(tier.rate);
       }
-      if (redpacketTiers.length > 0) return new Decimal(redpacketTiers[redpacketTiers.length - 1].rate);
+      if (tiers.length > 0) return new Decimal(tiers[tiers.length - 1].rate);
       return new Decimal(0);
     },
     [redpacketTiers]
@@ -117,7 +119,7 @@ const PlatformCalc: React.FC = () => {
   const calcRedpacket = async () => {
     if (!redpacketAmount || redpacketAmount <= 0) { message.warning("请输入有效红包金额"); return; }
     const amount = new Decimal(redpacketAmount);
-    const rate = getRedpacketRate(amount);
+    const rate = await getRedpacketRate(amount);
     const fee = amount.mul(rate);
     const net = amount.sub(fee);
     const ratePercent = rate.mul(100).toDecimalPlaces(0).toString();
@@ -224,7 +226,14 @@ const PlatformCalc: React.FC = () => {
         <Col xs={24} lg={12}>
           <Card title="红包计价">
             <div style={{ marginBottom: 16, color: "#888", fontSize: 13 }}>
-              阶梯抽成：≤10元 免抽 | 10~50元 抽20% | 50~500元 抽30% | &gt;500元 抽40%
+              阶梯抽成：{redpacketTiers.map((t, i) => {
+                  const rateStr = t.rate === 0 ? "免抽" : `抽${(t.rate * 100).toFixed(0)}%`;
+                  let text = "";
+                  if (t.min == null) text = `0<x≤${t.max}元 ${rateStr}`;
+                  else if (t.max == null) text = `x>${t.min}元 ${rateStr}`;
+                  else text = `${t.min}<x≤${t.max}元 ${rateStr}`;
+                  return <span key={i}>{i > 0 ? " | " : ""}{text}</span>;
+                })}
             </div>
             <Space direction="vertical" size="middle" style={{ width: "100%" }}>
               <div>
