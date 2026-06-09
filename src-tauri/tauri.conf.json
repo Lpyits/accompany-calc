@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "陪玩系统",
+        "title": "薇薇陪玩",
         "width": 1000,
         "height": 750,
         "resizable": true,

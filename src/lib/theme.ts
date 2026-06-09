@@ -7,15 +7,15 @@ export const themeConfig: ThemeConfig = {
     colorWarning: "#faad14",
     colorError: "#f5222d",
     borderRadius: 8,
+    colorBgBase: "#ffffff",
     colorBgContainer: "#ffffff",
+    colorBgElevated: "#ffffff",
+    colorBorder: "#d9d9d9",
   },
   components: {
     Button: {
       colorPrimary: "#eb2f96",
       algorithm: true,
-    },
-    Layout: {
-      bodyBg: "#f5f5f5",
     },
     Card: {
       borderRadiusLG: 12,
