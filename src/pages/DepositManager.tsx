@@ -19,6 +19,7 @@ import {
 import { PlusOutlined, DollarOutlined, UserOutlined, DeleteOutlined } from "@ant-design/icons";
 import Decimal from "decimal.js";
 import { execute, select, getSetting, fmtMoney, fmtDecimal } from "../lib/db";
+import { push } from "../lib/push";
 
 interface Customer {
   id: number;
@@ -145,17 +146,33 @@ const DepositManager: React.FC = () => {
 
   // ── 添加老板 ──
   const addCustomer = async () => {
-    if (!newName.trim()) { message.warning("请输入昵称"); return; }
-    await execute("INSERT INTO customers (name, remark) VALUES (?, ?)", [newName.trim(), newRemark.trim()]);
+    const name = newName.trim();
+    if (!name) { message.warning("请输入昵称"); return; }
+    // 同名校验
+    const dup = await select<{ cnt: number }>("SELECT COUNT(*) as cnt FROM customers WHERE name = ?", [name]);
+    if (dup.length && dup[0].cnt > 0) {
+      message.warning(`已有「${name}」老板，建档失败`);
+      return;
+    }
+    await execute("INSERT INTO customers (name, remark) VALUES (?, ?)", [name, newRemark.trim()]);
     message.success("老板已添加");
     setNewName("");
     setNewRemark("");
     loadCustomers();
+    push("老板建档", `昵称：${name}${newRemark.trim() ? "，备注：" + newRemark.trim() : ""}`);
   };
 
   // ── 存单录入 ──
   const addDeposit = async () => {
     if (!selCustomerId) { message.warning("请选择老板"); return; }
+    // 提交前校验老板是否仍存在
+    const check = await select<{ cnt: number }>("SELECT COUNT(*) as cnt FROM customers WHERE id = ?", [selCustomerId]);
+    if (!check.length || check[0].cnt === 0) {
+      message.warning("该老板已不存在，请重新选择");
+      setSelCustomerId(undefined);
+      loadCustomers();
+      return;
+    }
     if (!depositUnitPrice || depositUnitPrice <= 0) { message.warning("请输入有效单价"); return; }
     if (!depositAmount || depositAmount <= 0) { message.warning("请输入存入金额"); return; }
     const price = new Decimal(depositUnitPrice).toDecimalPlaces(5);
@@ -176,15 +193,23 @@ const DepositManager: React.FC = () => {
     message.success("存单已录入");
     setDepositAmount(null);
     loadDeposits();
+    const bossName = customers.find((c) => c.id === selCustomerId)?.name || "未知";
+    push("存单录入", `老板：${bossName}，¥${depositUnitPrice}/h，存入¥${depositAmount}，实得${fmtDecimal(actualHours)}h，赠${fmtDecimal(giftHours)}h`);
   };
 
   // ── 删除老板（仅删 customer，保留消费流水） ──
   const deleteCustomer = async (id: number) => {
+    const rows = await select<{ name: string; remark: string }>("SELECT name, remark FROM customers WHERE id = ?", [id]);
+    const name = rows.length > 0 ? rows[0].name : `ID:${id}`;
+    const remark = rows.length > 0 && rows[0].remark ? `，备注：${rows[0].remark}` : "";
     await execute("DELETE FROM deposits WHERE customer_id = ?", [id]);
     await execute("DELETE FROM customers WHERE id = ?", [id]);
+    // 若被删老板正好是下拉框已选值，立即清空
+    if (selCustomerId === id) setSelCustomerId(undefined);
     message.success("已删除");
     loadCustomers();
     loadDeposits();
+    push("删除数据", `存单管理：老板「${name}」${remark}`);
   };
 
   // ── 消费 ──
@@ -283,6 +308,7 @@ const DepositManager: React.FC = () => {
     message.success("消费已记录，收入已计入");
     setConsumeVisible(false);
     loadDeposits();
+    push("老板消费", `${consumeCustomer.customer_name}，消耗${fmtDecimal(used)}h（实扣${fmtDecimal(actualDed)}h，赠扣${fmtDecimal(giftDed)}h）`);
   };
 
   return (

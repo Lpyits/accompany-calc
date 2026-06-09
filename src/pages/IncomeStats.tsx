@@ -27,6 +27,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { select, execute, fmtMoney } from "../lib/db";
+import { push } from "../lib/push";
 
 // ── 类型映射 ──
 const typeLabel: Record<string, string> = {
@@ -154,12 +155,15 @@ const IncomeStats: React.FC = () => {
   }, [selectedYear, selectedMonth]);
 
   const deleteRecord = async (id: number) => {
+    const rows = await select<FlowRecord>("SELECT * FROM income_records WHERE id = ?", [id]);
+    const info = rows.length > 0 ? `来源：${rows[0].source}，总¥${rows[0].gross_amount}，到手¥${rows[0].net_amount}` : `ID: ${id}`;
     await execute("DELETE FROM income_records WHERE id = ?", [id]);
     message.success("已删除");
     loadMonthOverview();
     loadRecords();
     loadMonthly(selectedYear);
     loadTotalAllTime();
+    push("删除数据", `收入统计：${info}`);
   };
 
   const addManualRecord = async (values: Record<string, unknown>) => {
@@ -177,6 +181,7 @@ const IncomeStats: React.FC = () => {
     loadRecords();
     loadMonthly(selectedYear);
     loadTotalAllTime();
+    push("手动补录", `渠道：${source}，金额¥${fmtMoney(gross)}`);
   };
 
   const columns = [

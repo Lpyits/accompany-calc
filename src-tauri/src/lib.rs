@@ -1,3 +1,4 @@
+use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -83,6 +84,11 @@ pub fn run() {
                 .add_migrations("sqlite:app.db", migrations)
                 .build(),
         )
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
+        }))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

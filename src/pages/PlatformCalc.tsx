@@ -15,6 +15,7 @@ import {
 import { DeleteOutlined } from "@ant-design/icons";
 import Decimal from "decimal.js";
 import { getSetting, execute, select, fmtMoney } from "../lib/db";
+import { push } from "../lib/push";
 
 interface FlowRecord {
   id: number;
@@ -113,6 +114,7 @@ const PlatformCalc: React.FC = () => {
     );
     message.success("已记录");
     await loadFlow();
+    push("陪玩计价", `¥${unitPrice}/h × ${hours}h，总${fmtMoney(total)}，抽${fmtMoney(fee)}，到手${fmtMoney(net)}`);
   };
 
   // ── 红包计价计算 ──
@@ -138,13 +140,17 @@ const PlatformCalc: React.FC = () => {
     );
     message.success("已记录");
     await loadFlow();
+    push("红包计价", `¥${redpacketAmount}，抽${fmtMoney(fee)}，到手${fmtMoney(net)}`);
   };
 
   // ── 删除流水 ──
   const deleteFlow = async (id: number) => {
+    const rows = await select<FlowRecord>("SELECT * FROM income_records WHERE id = ?", [id]);
+    const info = rows.length > 0 ? `来源：${rows[0].source}，总¥${rows[0].gross_amount}，到手¥${rows[0].net_amount}` : `ID: ${id}`;
     await execute("DELETE FROM income_records WHERE id = ?", [id]);
     message.success("已删除");
     await loadFlow();
+    push("删除数据", `平台计价：${info}`);
   };
 
   // ── 流水表格列 ──

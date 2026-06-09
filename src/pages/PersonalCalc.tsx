@@ -15,6 +15,7 @@ import {
 import { DeleteOutlined } from "@ant-design/icons";
 import Decimal from "decimal.js";
 import { getSetting, execute, select, fmtMoney, fmtDecimal } from "../lib/db";
+import { push } from "../lib/push";
 
 interface FlowRecord {
   id: number;
@@ -66,6 +67,7 @@ const PersonalCalc: React.FC = () => {
       );
       message.success("已记录");
       await loadFlow();
+      push("个人接单", `¥${price}/h × ${hours}h，全额到手${fmtMoney(total)}`);
     } catch (err) {
       console.error("个人接单写入失败:", err);
       message.error("写入失败，请重启应用后重试");
@@ -74,9 +76,12 @@ const PersonalCalc: React.FC = () => {
 
   // ── 删除 ──
   const deleteFlow = async (id: number) => {
+    const rows = await select<FlowRecord>("SELECT * FROM income_records WHERE id = ?", [id]);
+    const info = rows.length > 0 ? `来源：${rows[0].source}，总¥${rows[0].gross_amount}，到手¥${rows[0].net_amount}` : `ID: ${id}`;
     await execute("DELETE FROM income_records WHERE id = ?", [id]);
     message.success("已删除");
     await loadFlow();
+    push("删除数据", `个人接单：${info}`);
   };
 
   const flowColumns = [
