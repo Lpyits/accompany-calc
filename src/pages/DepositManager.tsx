@@ -115,17 +115,18 @@ const DepositManager: React.FC = () => {
     });
     setDeposits(list);
 
-    // 总览：总存单金额 = 所有老板未消费金额（剩余实际金额）
+    // 总览：总存单金额 = 所有老板未消费金额（仅统计有主客户的存单）
     const stats = await select<{ total_remaining: string }>(
-      `SELECT COALESCE(SUM(CAST(remaining_actual_hours AS REAL) * CAST(unit_price AS REAL)), 0) as total_remaining
-       FROM deposits`
+      `SELECT COALESCE(SUM(CAST(d.remaining_actual_hours AS REAL) * CAST(d.unit_price AS REAL)), 0) as total_remaining
+       FROM deposits d JOIN customers c ON c.id = d.customer_id`
     );
     if (stats.length > 0) {
       setTotalAmount(fmtMoney(new Decimal(stats[0].total_remaining)));
     }
     const remainStats = await select<{ sum_actual: string; sum_gift: string }>(
-      `SELECT COALESCE(SUM(CAST(remaining_actual_hours AS REAL)),0) as sum_actual,
-              COALESCE(SUM(CAST(remaining_gift_hours AS REAL)),0) as sum_gift FROM deposits`
+      `SELECT COALESCE(SUM(CAST(d.remaining_actual_hours AS REAL)),0) as sum_actual,
+              COALESCE(SUM(CAST(d.remaining_gift_hours AS REAL)),0) as sum_gift
+       FROM deposits d JOIN customers c ON c.id = d.customer_id`
     );
     if (remainStats.length > 0) {
       setTotalActual(fmtDecimal(new Decimal(remainStats[0].sum_actual)));
@@ -159,6 +160,7 @@ const DepositManager: React.FC = () => {
     setNewName("");
     setNewRemark("");
     loadCustomers();
+    loadDeposits();
     push("老板建档", `昵称：${name}${newRemark.trim() ? "，备注：" + newRemark.trim() : ""}`);
   };
 
